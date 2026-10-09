@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LEGO STORE</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen">
+  
+  <header class="bg-yellow-400 text-slate-900 shadow-lg py-4 px-8 flex justify-between items-center">
+    <div class="flex items-center gap-4">
+      <img src="/static/lego_head.png" alt="LEGO Icon" class="w-12 h-12 object-contain drop-shadow">
+      <div>
+        <h1 class="text-3xl font-black tracking-wider uppercase">LEGO STORE</h1>
+        <p class="text-xs font-semibold text-slate-800">Control de Inventario y Proyecciones Asíncronas</p>
+      </div>
+    </div>
+    <a href="/docs" target="_blank" class="bg-slate-900 text-yellow-400 hover:bg-slate-800 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition shadow">
+      <i class="fa-solid fa-code"></i> Swagger API Docs
+    </a>
+  </header>
+
+  <main class="max-w-6xl mx-auto p-6 space-y-8">
+    
+    <div id="alerta" class="hidden p-4 rounded-xl text-sm font-semibold transition-all shadow-md"></div>
+
+    <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
+      <h2 id="form-titulo" class="text-xl font-bold mb-4 text-yellow-400 flex items-center gap-2">
+        <i class="fa-solid fa-plus-circle"></i> Agregar Nuevo Set
+      </h2>
+      <form id="form-producto" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <input type="hidden" id="prod-id">
+        <div>
+          <label class="block text-xs font-bold text-slate-400 mb-1">Número de Set (#)</label>
+          <input type="text" id="num_set" required placeholder="Ej: 10316" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-yellow-400 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-400 mb-1">Nombre del Set</label>
+          <input type="text" id="nombre" required placeholder="Ej: Casa Up" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-yellow-400 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-400 mb-1">Categoría / Temática</label>
+          <input type="text" id="categoria" required placeholder="Ej: Cine, Icons" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-yellow-400 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-400 mb-1">Precio (MXN $)</label>
+          <input type="number" step="0.01" id="precio" required placeholder="1800" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-yellow-400 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-400 mb-1">Stock (Unidades)</label>
+          <input type="number" id="stock" required placeholder="15" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-yellow-400 outline-none">
+        </div>
+        <div class="flex items-end gap-2">
+          <button type="submit" id="btn-guardar" class="flex-1 bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold py-2.5 px-4 rounded-lg transition text-sm">
+            Guardar Producto
+          </button>
+          <button type="button" onclick="resetForm()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold py-2.5 px-4 rounded-lg transition text-sm">
+            Limpiar
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-bold text-yellow-400 flex items-center gap-2">
+          <i class="fa-solid fa-boxes-stacked"></i> Inventario Actual
+        </h2>
+        <button onclick="cargarProductos()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold">
+          <i class="fa-solid fa-rotate-right"></i> Actualizar
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-slate-700 text-slate-400 text-xs uppercase bg-slate-900/50">
+              <th class="p-3">Set #</th>
+              <th class="p-3">Nombre</th>
+              <th class="p-3">Categoría</th>
+              <th class="p-3">Precio</th>
+              <th class="p-3">Stock</th>
+              <th class="p-3 text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-productos" class="divide-y divide-slate-700 text-sm">
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div id="resultado-proyeccion" class="hidden bg-slate-800 border-2 border-yellow-400 rounded-2xl p-6 shadow-2xl space-y-3">
+      <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+        <h3 class="text-lg font-bold text-yellow-400"><i class="fa-solid fa-chart-line"></i> Resultado de Proyección de Stock</h3>
+        <button onclick="cerrarProyeccion()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div id="contenido-proyeccion" class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    const API_URL = '/productos';
+
+    document.addEventListener('DOMContentLoaded', cargarProductos);
+
+    async function cargarProductos() {
+      const tbody = document.getElementById('tabla-productos');
+      try {
+        const res = await fetch(API_URL);
+        const data = await res.json();
+        
+        tbody.innerHTML = '';
+        if (!Array.isArray(data) || data.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" class="text-center p-4 text-slate-500">No hay sets de LEGO registrados.</td></tr>`;
+          return;
+        }
+
+        data.forEach(p => {
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-700/50 transition">
+              <td class="p-3 font-mono font-bold text-yellow-400">#${p.num_set}</td>
+              <td class="p-3 font-semibold">${p.nombre}</td>
+              <td class="p-3"><span class="bg-slate-700 text-slate-300 text-xs px-2 py-1 rounded-full">${p.categoria}</span></td>
+              <td class="p-3">$${p.precio.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+              <td class="p-3 font-bold ${p.stock < 5 ? 'text-red-400' : 'text-green-400'}">${p.stock} pzas</td>
+              <td class="p-3 flex justify-center gap-2">
+                <button onclick="prepararProyeccion('${p._id}', '${p.nombre}')" title="Calcular Proyección" class="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-lg text-xs font-semibold flex items-center gap-1 transition">
+                  <i class="fa-solid fa-calculator"></i> Proyección
+                </button>
+                <button onclick="cargarEditar('${p._id}', '${p.num_set}', '${p.nombre}', '${p.categoria}', ${p.precio}, ${p.stock})" title="Editar" class="bg-amber-600 hover:bg-amber-500 text-white p-2 rounded-lg text-xs transition">
+                  <i class="fa-solid fa-pen"></i>
+                </button>
+                <button onclick="eliminarProducto('${p._id}')" title="Eliminar" class="bg-red-600 hover:bg-red-500 text-white p-2 rounded-lg text-xs transition">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </td>
+            </tr>
+          `;
+        });
+      } catch (err) {
+        console.error('Error al cargar productos:', err);
+        mostrarAlerta('Error al conectar con la base de datos', 'error');
+      }
+    }
+
+    document.getElementById('form-producto').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('prod-id').value;
+      const payload = {
+        num_set: document.getElementById('num_set').value,
+        nombre: document.getElementById('nombre').value,
+        categoria: document.getElementById('categoria').value,
+        precio: parseFloat(document.getElementById('precio').value),
+        stock: parseInt(document.getElementById('stock').value)
+      };
+
+      const method = id ? 'PUT' : 'POST';
+      const url = id ? `${API_URL}/${id}` : API_URL;
+
+      try {
+        const res = await fetch(url, {
+          method: method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.detail || 'Error en la petición');
+
+        mostrarAlerta(id ? 'Producto actualizado con éxito' : 'Producto agregado con éxito', 'exito');
+        resetForm();
+        cargarProductos();
+      } catch (err) {
+        console.error('Error al guardar:', err);
+        mostrarAlerta(err.message, 'error');
+      }
+    });
+
+    async function eliminarProducto(id) {
+      if (!confirm('¿Seguro que deseas eliminar este set del inventario?')) return;
+      try {
+        const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('No se pudo eliminar');
+        mostrarAlerta('Set eliminado correctamente', 'exito');
+        cargarProductos();
+      } catch (err) {
+        mostrarAlerta(err.message, 'error');
+      }
+    }
+
+    async function prepararProyeccion(id, nombre) {
+      const contenedor = document.getElementById('resultado-proyeccion');
+      const info = document.getElementById('contenido-proyeccion');
+      contenedor.classList.remove('hidden');
+      info.innerHTML = `
+        <div class="col-span-4 py-4 text-center">
+          <i class="fa-solid fa-circle-notch fa-spin text-3xl text-yellow-400"></i>
+          <p class="text-sm font-semibold mt-2 text-slate-300">Calculando proyección para "${nombre}"... Por favor espera.</p>
+        </div>
+      `;
+
+      try {
+        const res = await fetch(`${API_URL}/${id}/proyeccion-stock`, { method: 'POST' });
+        if (!res.ok) throw new Error('Error al obtener la proyección');
+        const data = await res.json();
+
+        info.innerHTML = `
+          <div class="bg-slate-900 p-3 rounded-lg border border-slate-700">
+            <span class="block text-xs text-slate-400">Demanda Estimada (6m)</span>
+            <span class="text-lg font-bold text-yellow-400">${data.demanda_estimada_6meses} pzas</span>
+          </div>
+          <div class="bg-slate-900 p-3 rounded-lg border border-slate-700">
+            <span class="block text-xs text-slate-400">Sugerencia Reabastecimiento</span>
+            <span class="text-lg font-bold text-green-400">${data.sugerencia_reabastecimiento} pzas</span>
+          </div>
+          <div class="bg-slate-900 p-3 rounded-lg border border-slate-700">
+            <span class="block text-xs text-slate-400">Proyección de Ventas</span>
+            <span class="text-lg font-bold text-blue-400">$${data.proyeccion_ventas_mxn.toLocaleString('es-MX')} MXN</span>
+          </div>
+          <div class="bg-slate-900 p-3 rounded-lg border border-slate-700">
+            <span class="block text-xs text-slate-400">Estado</span>
+            <span class="text-xs font-bold text-emerald-400">${data.status_analisis}</span>
+          </div>
+        `;
+      } catch (err) {
+        console.error("Error al proyectar:", err);
+        info.innerHTML = `<p class="col-span-4 text-red-400 font-bold">Error al ejecutar la proyección.</p>`;
+      }
+    }
+
+    function cargarEditar(id, num_set, nombre, categoria, precio, stock) {
+      document.getElementById('prod-id').value = id;
+      document.getElementById('num_set').value = num_set;
+      document.getElementById('nombre').value = nombre;
+      document.getElementById('categoria').value = categoria;
+      document.getElementById('precio').value = precio;
+      document.getElementById('stock').value = stock;
+
+      document.getElementById('form-titulo').innerHTML = `<i class="fa-solid fa-pen"></i> Editar Set LEGO`;
+      document.getElementById('btn-guardar').innerText = 'Actualizar Producto';
+    }
+
+    function resetForm() {
+      document.getElementById('prod-id').value = '';
+      document.getElementById('form-producto').reset();
+      document.getElementById('form-titulo').innerHTML = `<i class="fa-solid fa-plus-circle"></i> Agregar Nuevo Set`;
+      document.getElementById('btn-guardar').innerText = 'Guardar Producto';
+    }
+
+    function cerrarProyeccion() {
+      document.getElementById('resultado-proyeccion').classList.add('hidden');
+    }
+
+    function mostrarAlerta(msg, tipo) {
+      const alerta = document.getElementById('alerta');
+      alerta.classList.remove('hidden', 'bg-red-500/20', 'text-red-400', 'border-red-500', 'bg-green-500/20', 'text-green-400', 'border-green-500');
+      alerta.classList.add('border');
+      
+      if (tipo === 'error') {
+        alerta.classList.add('bg-red-500/20', 'text-red-400', 'border-red-500');
+      } else {
+        alerta.classList.add('bg-green-500/20', 'text-green-400', 'border-green-500');
+      }
+      
+      alerta.innerText = msg;
+      setTimeout(() => alerta.classList.add('hidden'), 4000);
+    }
+  </script>
+</body>
+</html>
